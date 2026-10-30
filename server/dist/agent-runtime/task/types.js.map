@@ -1,1 +1,0 @@
-{"version":3,"file":"types.js","sourceRoot":"","sources":["../../../src/agent-runtime/task/types.ts"],"names":[],"mappings":"AAAA;;;;GAIG;AAEH,MAAM,CAAC,MAAM,WAAW,GAAG;IACzB,OAAO,EAAE,SAAS,EAAQ,WAAW;IACrC,KAAK,EAAE,OAAO,EAAY,gBAAgB;IAC1C,MAAM,EAAE,QAAQ,EAAU,OAAO;IACjC,SAAS,EAAE,WAAW,EAAI,OAAO;IACjC,MAAM,EAAE,QAAQ,EAAU,KAAK;IAC/B,OAAO,EAAE,SAAS,EAAQ,iBAAiB;CACnC,CAAC"}
