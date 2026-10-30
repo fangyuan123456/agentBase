@@ -1,0 +1,59 @@
+/**
+ * agent-runtime/AgentDispatcher.ts
+ * 统一 Agent 调度处理中心 (Agent Dispatcher SSOT)
+ *
+ * 核心设计：
+ * 1. 负责 Agent 的统一解耦调度与生命周期管理；
+ * 2. 避免调用方直接耦合 `new XxxAgent()`，为未来平滑迁移至分布式、RPC 与 Worker 提供唯一收口；
+ * 3. 遵从瞬态隔离原则：每次派发生成独立的 Agent 实例并绑定 projectId，彻底杜绝多智能体并发竞态；
+ * 4. 原生支持 dispatchParallel，提供工业级受控并发协同调度；
+ * 5. 全面适配开放式 AgentRole，支持任意通用业务智能体注册。
+ */
+import { asyncPool } from '../utils/concurrency.js';
+export class LocalAgentDispatcher {
+    factories = new Map();
+    constructor() { }
+    /**
+     * 注册指定角色的 Agent 构造工厂
+     */
+    register(role, factory) {
+        this.factories.set(role, factory);
+        return this;
+    }
+    /**
+     * 检查指定角色是否已注册工厂
+     */
+    has(role) {
+        return this.factories.has(role);
+    }
+    /**
+     * 统一派发单个 Agent 任务 (瞬态安全隔离)
+     */
+    async dispatch(role, input, options, projectId) {
+        const factory = this.factories.get(role);
+        if (!factory) {
+            throw new Error(`[AgentDispatcher] 未注册角色 "${role}" 的 Agent 处理工厂`);
+        }
+        // 瞬态生成独立 Agent 实例，杜绝并发状态污染
+        const agent = factory();
+        // 原生注入 projectId (SSOT)
+        if (projectId && typeof agent.setProjectId === 'function') {
+            agent.setProjectId(projectId);
+        }
+        // 统一通过切面 execute 执行，获得完备的异常包裹与耗时度量
+        return (await agent.execute(input));
+    }
+    /**
+     * 批量并发派发多个 Agent 协同任务 (Multi-Agent 并发中枢)
+     */
+    async dispatchParallel(requests, options) {
+        if (!requests || requests.length === 0)
+            return [];
+        const concurrency = options?.concurrency;
+        if (concurrency && concurrency > 0) {
+            return asyncPool(concurrency, requests, async (req) => this.dispatch(req.role, req.input, req.options, req.projectId));
+        }
+        return Promise.all(requests.map((req) => this.dispatch(req.role, req.input, req.options, req.projectId)));
+    }
+}
+//# sourceMappingURL=AgentDispatcher.js.map
